@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Эмулятор NES в браузере</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .file-input {
+            margin: 10px 0;
+        }
+        
+        .screen-container {
+            position: relative;
+            margin: 20px auto;
+            width: 512px;
+            height: 480px;
+            border: 2px solid #2c3e50;
+            background-color: #000;
+        }
+        
+        #nes-screen {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .key-mappings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .key {
+            background-color: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Эмулятор NES в браузере</h1>
+        
+        <div class="controls">
+            <input type="file" id="rom-file" accept=".nes" class="file-input">
+            <button id="load-btn" disabled>Загрузить ROM</button>
+            <button id="start-btn" disabled>Старт</button>
+            <button id="pause-btn" disabled>Пауза</button>
+            <button id="reset-btn" disabled>Сброс</button>
+            <button id="fullscreen-btn">Полный экран</button>
+        </div>
+        
+        <div class="screen-container">
+            <canvas id="nes-screen"></canvas>
+            <div class="loading" id="loading-indicator">Загрузка...</div>
+        </div>
+        
+        <div class="instructions">
+            <h3>Управление:</h3>
+            <div class="key-mappings">
+                <div><span class="key">Стрелки</span> - D-Pad</div>
+                <div><span class="key">Z</span> - Кнопка A</div>
+                <div><span class="key">X</span> - Кнопка B</div>
+                <div><span class="key">Enter</span> - Старт</div>
+                <div><span class="key">Shift</span> - Селект</div>
+            </div>
+            <p style="margin-top: 10px;">Для начала работы загрузите ROM-файл игры для NES (формат .nes)</p>
+        </div>
+    </div>
+
+    <!-- Подключаем библиотеку JSNES -->
+    <script src="https://unpkg.com/jsnes/dist/jsnes.min.js"></script>
+    
+    <script>
+        // Инициализация эмулятора
+        const nes = new jsnes.NES({
+            onFrame: (frameBuffer) => {
+                // Отрисовка кадра
+                const canvas = document.getElementById('nes-screen');
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.createImageData(256, 240);
+                
+                for (let i = 0; i < frameBuffer.length; i++) {
+                    imageData.data[i] = frameBuffer[i];
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(canvas, 0, 0, 256, 240, 0, 0, 512, 480);
+            },
+            onAudioSample: (left, right) => {
+                // Обработка аудио (пока не реализовано)
+            }
+        });
+        
+        // Элементы управления
+        const romFileInput = document.getElementById('rom-file');
+        const loadBtn = document.getElementById('load-btn');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        
+        // Переменные состояния
+        let romData = null;
+        let isRunning = false;
+        
+        // Обработчики событий
+        romFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    romData = new Uint8Array(e.target.result);
+                    loadBtn.disabled = false;
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+        
+        loadBtn.addEventListener('click', () => {
+            if (romData) {
+                loadingIndicator.style.display = 'block';
+                
+                // Имитация загрузки (в реальном приложении здесь будет загрузка ROM)
+                setTimeout(() => {
+                    nes.loadROM(romData);
+                    loadingIndicator.style.display = 'none';
+                    startBtn.disabled = false;
+                    resetBtn.disabled = false;
+                    
+                    // Настройка управления
+                    setupInput();
+                }, 1000);
+            }
+        });
+        
+        startBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                nes.start();
+                isRunning = true;
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+            }
+        });
+        
+        pauseBtn.addEventListener('click', () => {
+            if (isRunning) {
+                nes.stop();
+                isRunning = false;
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+            }
+        });
+        
+        resetBtn.addEventListener('click', () => {
+            nes.reset();
+            if (isRunning) {
+                nes.stop();
+                isRunning = false;
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+            }
+        });
+        
+        fullscreenBtn.addEventListener('click', () => {
+            const screenContainer = document.querySelector('.screen-container');
+            if (screenContainer.requestFullscreen) {
+                screenContainer.requestFullscreen();
+            } else if (screenContainer.webkitRequestFullscreen) {
+                screenContainer.webkitRequestFullscreen();
+            } else if (screenContainer.msRequestFullscreen) {
+                screenContainer.msRequestFullscreen();
+            }
+        });
+        
+        // Настройка управления с клавиатуры
+        function setupInput() {
+            const keyMap = {
+                88: 1,      // X - кнопка A
+                90: 2,      // Z - кнопка B
+                13: 4,      // Enter - Старт
+                16: 8,      // Shift - Селект
+                38: 16,     // Стрелка вверх
+                40: 32,     // Стрелка вниз
+                37: 64,     // Стрелка влево
+                39: 128     // Стрелка вправо
+            };
+            
+            document.addEventListener('keydown', (event) => {
+                const button = keyMap[event.keyCode];
+                if (button !== undefined) {
+                    nes.buttonDown(1, button);
+                    event.preventDefault();
+                }
+            });
+            
+            document.addEventListener('keyup', (event) => {
+                const button = keyMap[event.keyCode];
+                if (button !== undefined) {
+                    nes.buttonUp(1, button);
+                    event.preventDefault();
+                }
+            });
+        }
+        
+        // Инициализация канваса
+        const canvas = document.getElementById('nes-screen');
+        canvas.width = 512;
+        canvas.height = 480;
+    </script>
+</body>
+</html>
