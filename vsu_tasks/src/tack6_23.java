@@ -14,21 +14,22 @@ public class tack6_23 {
         double sum_E10 = 0;
 
         if (-1 < x && 1 > x){
+
+
             for (int i = 0; i < n; i++) {
+
+                if (i == 0){
+                    a = 1.0;
+                }else{
+                    a = a*x*(i+1.0) / i;
+                }
+
                 if (Math.abs(a) > e) {
                     sum_E += a;
                 }
 
                 if (Math.abs(a) > (e / 10)) {
                     sum_E10 += a;
-                }
-
-
-                int k = i + 1;
-                a = a * ((2.0 * k - 1) / (2.0 * k)) * x * x;
-
-                if (k < n) {
-                    sum_N += a;
                 }
             }
             double func = 1 / (Math.pow((1-x), 2));
